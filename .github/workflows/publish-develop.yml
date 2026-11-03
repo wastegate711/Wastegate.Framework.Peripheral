@@ -1,0 +1,76 @@
+name: Build and publish NuGet packages
+
+on:
+  push:
+    branches: [ develop ]
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Set up NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Build ARM Release assemblies
+        run: msbuild Wastegate.Framework.Peripheral.sln -t:Build -p:Configuration=Release -p:Platform=ARM -m -restore
+
+      - name: Create NuGet packages
+        id: package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+            if ($version -notmatch '^\d+\.\d+\.\d+$') {
+              throw "Release tag '$env:GITHUB_REF_NAME' must be a semantic version such as 1.2.3 or v1.2.3."
+            }
+            $releaseTag = $env:GITHUB_REF_NAME
+            $isPrerelease = 'false'
+            $releaseName = "Release $version"
+          }
+          else {
+            $version = "0.0.0-develop.$env:GITHUB_RUN_NUMBER"
+            $releaseTag = "develop-$env:GITHUB_RUN_NUMBER"
+            $isPrerelease = 'true'
+            $releaseName = "Develop build $env:GITHUB_RUN_NUMBER"
+          }
+
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $manifests = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Filter '*.nuspec' -File -Recurse |
+            Where-Object { $_.FullName -notmatch '[\\/](bin|obj|artifacts|\.git)[\\/]' }
+          if (-not $manifests) {
+            throw 'No .nuspec package manifests were found.'
+          }
+
+          foreach ($manifest in $manifests) {
+            Write-Host "Packing $($manifest.FullName) as version $version"
+            nuget pack $manifest.FullName -BasePath $manifest.DirectoryName -Version $version -OutputDirectory (Join-Path $env:GITHUB_WORKSPACE 'artifacts')
+            if ($LASTEXITCODE -ne 0) {
+              throw "NuGet pack failed for $($manifest.FullName) with exit code $LASTEXITCODE."
+            }
+          }
+
+          "tag=$releaseTag" >> $env:GITHUB_OUTPUT
+          "name=$releaseName" >> $env:GITHUB_OUTPUT
+          "prerelease=$isPrerelease" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.package.outputs.tag }}
+          name: ${{ steps.package.outputs.name }}
+          body: NuGet packages built from ${{ github.ref_name }} at commit ${{ github.sha }}.
+          prerelease: ${{ steps.package.outputs.prerelease }}
+          files: artifacts/*.nupkg
+          fail_on_unmatched_files: true

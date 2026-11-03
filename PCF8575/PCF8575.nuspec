@@ -25,13 +25,8 @@
   </metadata>
 
   <files>
-    <!--Lybrary-->
-    <file src="./bin\ARM\Debug\PCF8575.xml" target="lib\uap10.0"/>
-    <file src="./bin\ARM\Debug\PCF8575.pdb" target="lib\uap10.0"/>
-    <file src="./bin\ARM\Debug\PCF8575.dll" target="lib\uap10.0"/>
-    <!--Document-->
-    <file src="./Readme.md" target="Readme.md"/>
-    <!--Images-->
+    <file src="bin\ARM\Release\PCF8575.dll" target="lib\uap10.0"/>
+    <file src="Readme.md" target="Readme.md"/>
     <file src="..\west4.png" target="Images\west4.png"/>
   </files>
 </package>
