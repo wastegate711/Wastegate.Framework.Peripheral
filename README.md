@@ -5,6 +5,7 @@
 
 [MAX7219](https://github.com/wastegate711/Wastegate.Framework.Peripheral.wiki.git)
 
+
 ## NuGet-пакеты
 
 GitHub Actions автоматически находит все `.nuspec`-манифесты в репозитории и создает пакет для каждого из них. Чтобы добавить библиотеку, добавьте ее проект в solution и положите `.nuspec` рядом с проектом; изменять workflow не нужно.
