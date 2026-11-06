@@ -9,8 +9,8 @@
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/wastegate711/Wastegate.Framework.Peripheral.git</projectUrl>
     <icon>Images\west-logos_white.png</icon>
-    <description>Framework содержит библиотеки для взаимодействия с переферийными устройствами
-       RTC, Display Drivers, PWM controllers, Multiplexor.</description>
+    <description>
+       RTC, Display Drivers, PWM controllers, Multiplexer.</description>
     <releaseNotes>Добавил библиотеку PCF8575</releaseNotes>
     <copyright>Wastegate 2022</copyright>
     <tags>UWP Raspberry I2C SPI PWM RTC Drivers</tags>
@@ -21,7 +21,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="\bin\Release\Images\west-logos_white.png" target="Images"/>
+    <file src="..\west-logos_white.png" target="Images\west-logos_white.png"/>
     <file src="\bin\Release\PeripheralDevices.xml" target="lib\uap10.0"/>
     <file src="\bin\ARM\Release\PeripheralDevices.dll" target="lib\uap10.0"/>
   </files>

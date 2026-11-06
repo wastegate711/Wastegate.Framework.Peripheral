@@ -7,8 +7,8 @@
 
 ## NuGet-пакеты
 
-GitHub Actions автоматически находит все `.nuspec`-манифесты в репозитории и создает пакет для каждого из них. Чтобы добавить библиотеку, добавьте ее проект в solution и положите `.nuspec` рядом с проектом; изменять workflow не нужно.
+Проекты используют SDK-style и `netstandard2.0`; каждый проект с `PackageId` автоматически собирается в NuGet-пакет. Для новой библиотеки достаточно добавить SDK-style `.csproj` в solution, указать в нем `PackageId` и включить нужные зависимости — отдельный `.nuspec` и правки workflow не нужны.
 
-В соответствии с GitFlow push в `develop` создает предварительный релиз с версией `0.0.0-develop.N`. Стабильный релиз создается при push Git-тега SemVer, например `1.2.3` или `v1.2.3`.
+Push в `develop` создает предварительный GitHub Release с пакетами версии `0.0.0-develop.N`. Push Git-тега SemVer, например `1.2.3` или `v1.2.3`, публикует стабильные пакеты в NuGet.org и создает GitHub Release. Для публикации стабильных версий в настройках репозитория должен быть задан Actions secret `NUGET_API_KEY`.
 
-Скачать `.nupkg` можно во вкладке [Releases](https://github.com/wastegate711/Wastegate.Framework.Peripheral/releases).
+Пакеты также доступны во вкладке [Releases](https://github.com/wastegate711/Wastegate.Framework.Peripheral/releases).

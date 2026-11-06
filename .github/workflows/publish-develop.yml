@@ -16,14 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Set up NuGet
-        uses: NuGet/setup-nuget@v2
-
-      - name: Build ARM Release assemblies
-        run: msbuild Wastegate.Framework.Peripheral.sln -t:Build -p:Configuration=Release -p:Platform=ARM -m -restore
+      - name: Build solution
+        run: dotnet build Wastegate.Framework.Peripheral.sln --configuration Release
 
       - name: Create NuGet packages
         id: package
@@ -46,24 +40,56 @@ jobs:
             $releaseName = "Develop build $env:GITHUB_RUN_NUMBER"
           }
 
-          New-Item -ItemType Directory -Force artifacts | Out-Null
-          $manifests = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Filter '*.nuspec' -File -Recurse |
-            Where-Object { $_.FullName -notmatch '[\\/](bin|obj|artifacts|\.git)[\\/]' }
-          if (-not $manifests) {
-            throw 'No .nuspec package manifests were found.'
+          $outputDirectory = Join-Path $env:GITHUB_WORKSPACE 'artifacts'
+          New-Item -ItemType Directory -Force $outputDirectory | Out-Null
+          $projects = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Filter '*.csproj' -File -Recurse |
+            Where-Object { $_.FullName -notmatch '[\\/](bin|obj|artifacts|\.git|session-state)[\\/]' }
+          if (-not $projects) {
+            throw 'No library projects were found.'
           }
 
-          foreach ($manifest in $manifests) {
-            Write-Host "Packing $($manifest.FullName) as version $version"
-            nuget pack $manifest.FullName -BasePath $manifest.DirectoryName -Version $version -OutputDirectory (Join-Path $env:GITHUB_WORKSPACE 'artifacts')
+          $packageCount = 0
+          foreach ($project in $projects) {
+            $packageId = (dotnet msbuild $project.FullName -getProperty:PackageId | Out-String).Trim()
             if ($LASTEXITCODE -ne 0) {
-              throw "NuGet pack failed for $($manifest.FullName) with exit code $LASTEXITCODE."
+              throw "Could not inspect package metadata for $($project.FullName)."
             }
+            if ([string]::IsNullOrWhiteSpace($packageId)) {
+              continue
+            }
+
+            Write-Host "Packing $packageId from $($project.FullName) as version $version"
+            dotnet pack $project.FullName --configuration Release --no-build --no-restore --output $outputDirectory "-p:PackageVersion=$version"
+            if ($LASTEXITCODE -ne 0) {
+              throw "dotnet pack failed for $($project.FullName) with exit code $LASTEXITCODE."
+            }
+            $packageCount++
+          }
+          if ($packageCount -eq 0) {
+            throw 'No projects with PackageId metadata were found.'
           }
 
           "tag=$releaseTag" >> $env:GITHUB_OUTPUT
           "name=$releaseName" >> $env:GITHUB_OUTPUT
           "prerelease=$isPrerelease" >> $env:GITHUB_OUTPUT
+
+      - name: Publish stable packages to NuGet.org
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
+            throw 'Configure the NUGET_API_KEY repository secret before publishing a stable release.'
+          }
+
+          Get-ChildItem (Join-Path $env:GITHUB_WORKSPACE 'artifacts') -Filter '*.nupkg' -File | ForEach-Object {
+            dotnet nuget push $_.FullName --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY --skip-duplicate
+            if ($LASTEXITCODE -ne 0) {
+              throw "NuGet.org publish failed for $($_.Name) with exit code $LASTEXITCODE."
+            }
+          }
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

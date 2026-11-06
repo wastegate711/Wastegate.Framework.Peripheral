@@ -9,7 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{CE131C8E
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{41F1F672-7D76-4C99-B595-A334B0111F87}"
 	ProjectSection(SolutionItems) = preProject
-		PCF8574\Images\west-logos_white.png = PCF8574\Images\west-logos_white.png
+		west-logos_white.png = west-logos_white.png
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCF8575", "PCF8575\PCF8575.csproj", "{AB201293-4BF9-4782-8A6C-7F178FF287FA}"
