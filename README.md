@@ -5,6 +5,7 @@
 
 [MAX7219](https://github.com/wastegate711/Wastegate.Framework.Peripheral.wiki.git)
 
+
 ## NuGet-пакеты
 
 Проекты используют SDK-style и `netstandard2.0`; каждый проект с `PackageId` автоматически собирается в NuGet-пакет. Для новой библиотеки достаточно добавить SDK-style `.csproj` в solution, указать в нем `PackageId` и включить нужные зависимости — отдельный `.nuspec` и правки workflow не нужны.
