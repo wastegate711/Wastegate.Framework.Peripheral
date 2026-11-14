@@ -2,101 +2,76 @@ name: Build and publish NuGet packages
 
 on:
   push:
+    branches: [ develop, release ]
+  pull_request:
     branches: [ develop ]
-    tags:
-      - '*.*.*'
+    types: [ opened, synchronize, reopened ]
 
 permissions:
   contents: write
 
 jobs:
+  publish-wiki:
+    if: github.event_name == 'push' && github.ref_name == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish project documentation to GitHub Wiki
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        shell: pwsh
+        run: .github/scripts/publish-wiki.ps1
+
   package-and-release:
     runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Build solution
         run: dotnet build Wastegate.Framework.Peripheral.sln --configuration Release
 
-      - name: Create NuGet packages
+      - name: Pack changed packages
+        if: github.event_name == 'pull_request' || github.ref_name == 'release'
         id: package
+        env:
+          RELEASE_MODE: ${{ github.event_name == 'push' && github.ref_name == 'release' }}
+          CHANGED_PACKAGES_ONLY: ${{ github.event_name == 'pull_request' || github.ref_name == 'release' }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          COMPARE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            $version = $env:GITHUB_REF_NAME -replace '^v', ''
-            if ($version -notmatch '^\d+\.\d+\.\d+$') {
-              throw "Release tag '$env:GITHUB_REF_NAME' must be a semantic version such as 1.2.3 or v1.2.3."
-            }
-            $releaseTag = $env:GITHUB_REF_NAME
-            $isPrerelease = 'false'
-            $releaseName = "Release $version"
-          }
-          else {
-            $version = "0.0.0-develop.$env:GITHUB_RUN_NUMBER"
-            $releaseTag = "develop-$env:GITHUB_RUN_NUMBER"
-            $isPrerelease = 'true'
-            $releaseName = "Develop build $env:GITHUB_RUN_NUMBER"
-          }
+        run: .github/scripts/pack-changed-packages.ps1
 
-          $outputDirectory = Join-Path $env:GITHUB_WORKSPACE 'artifacts'
-          New-Item -ItemType Directory -Force $outputDirectory | Out-Null
-          $projects = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Filter '*.csproj' -File -Recurse |
-            Where-Object { $_.FullName -notmatch '[\\/](bin|obj|artifacts|\.git|session-state)[\\/]' }
-          if (-not $projects) {
-            throw 'No library projects were found.'
-          }
-
-          $packageCount = 0
-          foreach ($project in $projects) {
-            $packageId = (dotnet msbuild $project.FullName -getProperty:PackageId | Out-String).Trim()
-            if ($LASTEXITCODE -ne 0) {
-              throw "Could not inspect package metadata for $($project.FullName)."
-            }
-            if ([string]::IsNullOrWhiteSpace($packageId)) {
-              continue
-            }
-
-            Write-Host "Packing $packageId from $($project.FullName) as version $version"
-            dotnet pack $project.FullName --configuration Release --no-build --no-restore --output $outputDirectory "-p:PackageVersion=$version"
-            if ($LASTEXITCODE -ne 0) {
-              throw "dotnet pack failed for $($project.FullName) with exit code $LASTEXITCODE."
-            }
-            $packageCount++
-          }
-          if ($packageCount -eq 0) {
-            throw 'No projects with PackageId metadata were found.'
-          }
-
-          "tag=$releaseTag" >> $env:GITHUB_OUTPUT
-          "name=$releaseName" >> $env:GITHUB_OUTPUT
-          "prerelease=$isPrerelease" >> $env:GITHUB_OUTPUT
-
-      - name: Publish stable packages to NuGet.org
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publish changed packages to NuGet.org
+        if: github.ref_name == 'release' && steps.package.outputs.package_count != '0'
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
-            throw 'Configure the NUGET_API_KEY repository secret before publishing a stable release.'
+            throw 'Configure the NUGET_API_KEY repository secret before publishing release packages.'
           }
 
           Get-ChildItem (Join-Path $env:GITHUB_WORKSPACE 'artifacts') -Filter '*.nupkg' -File | ForEach-Object {
-            dotnet nuget push $_.FullName --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY --skip-duplicate
+            dotnet nuget push $_.FullName --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY
             if ($LASTEXITCODE -ne 0) {
               throw "NuGet.org publish failed for $($_.Name) with exit code $LASTEXITCODE."
             }
           }
 
       - name: Create GitHub release
+        if: (github.event_name == 'pull_request' || github.ref_name == 'release') && steps.package.outputs.package_count != '0'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.package.outputs.tag }}
-          name: ${{ steps.package.outputs.name }}
-          body: NuGet packages built from ${{ github.ref_name }} at commit ${{ github.sha }}.
-          prerelease: ${{ steps.package.outputs.prerelease }}
+          tag_name: ${{ github.event_name == 'pull_request' && format('develop-pr-{0}-{1}', github.event.number, github.run_number) || format('release-{0}', github.run_number) }}
+          name: ${{ github.event_name == 'pull_request' && format('Develop PR #{0} build {1}', github.event.number, github.run_number) || format('Release build {0}', github.run_number) }}
+          body: Updated NuGet packages from ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.number) || github.ref_name }} at commit ${{ github.sha }}: ${{ steps.package.outputs.package_ids }}.
+          target_commitish: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          prerelease: ${{ github.event_name == 'pull_request' }}
           files: artifacts/*.nupkg
           fail_on_unmatched_files: true

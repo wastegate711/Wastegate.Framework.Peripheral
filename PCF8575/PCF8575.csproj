@@ -13,12 +13,12 @@
     <PackageTags>UWP Linux Raspberry I2C GPIO PCF8575</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/wastegate711/Wastegate.Framework.Peripheral</PackageProjectUrl>
-    <PackageIcon>images/west-logos_white.png</PackageIcon>
+    <PackageIcon>images/west.png</PackageIcon>
     <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Device.Gpio" Version="3.2.0" />
-    <None Include="..\west-logos_white.png" Pack="true" PackagePath="images\west-logos_white.png" />
+    <None Include="..\Images\west-package.png" Pack="true" PackagePath="images\west.png" />
     <None Update="PackageReadme.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
