@@ -4,15 +4,13 @@
 
 ## Библиотеки и NuGet-пакеты
 
-| Устройство | Возможности | NuGet-пакет |
-| --- | --- | --- |
-| MAX7219 | 7-сегментные дисплеи и матрицы 8x8, подключенные по SPI | `Wastegate.Framework.Max7219` |
-| PCF8574 | 8-битный расширитель GPIO по I2C, чтение состояния и обнаружение изменений через вход прерывания | `Wastegate.Framework.Peripheral` |
-| PCF8575 | 16-битный расширитель GPIO по I2C, чтение/сброс состояния и обнаружение изменений через вход прерывания | `Wastegate.Framework.Peripheral` или `Wastegate.Framework.Pcf8575` |
+| Устройство | Возможности | NuGet-пакет | Документация |
+| --- | --- | --- | --- |
+| MAX7219 | 7-сегментные дисплеи и матрицы 8x8, подключенные по SPI | `Wastegate.Framework.Max7219` | [Wiki](https://github.com/wastegate711/Wastegate.Framework.Peripheral/wiki/MAX7219) |
+| PCF8574 | 8-битный расширитель GPIO по I2C, чтение состояния и обнаружение изменений через вход прерывания | `Wastegate.Framework.Peripheral` | [Wiki](https://github.com/wastegate711/Wastegate.Framework.Peripheral/wiki/PCF8574) |
+| PCF8575 | 16-битный расширитель GPIO по I2C, чтение/сброс состояния и обнаружение изменений через вход прерывания | `Wastegate.Framework.Peripheral` или `Wastegate.Framework.Pcf8575` | [Wiki](https://github.com/wastegate711/Wastegate.Framework.Peripheral/wiki/PCF8575) |
 
 Установите нужный пакет из NuGet. Для доступа к устройству также должны быть включены соответствующие SPI/I2C-интерфейсы и разрешения ОС. I2C-адрес, шину и подключение GPIO-прерывания выбирайте согласно своей плате и схеме.
-
-Подробные страницы: [PCF8575](https://github.com/wastegate711/Wastegate.Framework.Peripheral/wiki/PCF8575), [MAX7219](https://github.com/wastegate711/Wastegate.Framework.Peripheral/wiki/MAX7219).
 
 ## MAX7219
 
@@ -178,5 +176,7 @@ await interruptExpander.Initialization(
 Проекты используют SDK-style и `netstandard2.0`; каждый проект с `PackageId` автоматически собирается в NuGet-пакет. Push в `develop` только собирает решение и не публикует пакеты.
 
 Pull request в `develop` собирает решение и создает предварительный GitHub Release только с измененными или новыми пакетами. Dev-версии пакетов уникальны для каждого запуска PR. Push в `release` публикует в NuGet.org и GitHub Releases только пакеты, чей проект, исходники или упаковываемые файлы изменились; новые проекты с `PackageId` также включаются автоматически. Перед выпуском измененного пакета увеличьте его `<Version>` в `.csproj`. Если такая версия уже есть в NuGet.org, публикация завершится ошибкой вместо тихого пропуска.
+
+При push в `develop` файлы `README.md` (или `PackageReadme.md`) из папок проектов синхронизируются со страницами [GitHub Wiki](https://github.com/wastegate711/Wastegate.Framework.Peripheral/wiki). Для новой библиотеки добавьте один из этих файлов в папку проекта. Для публикации Wiki в настройках репозитория должен быть задан Actions secret `WIKI_TOKEN` с правом записи.
 
 Для публикации в NuGet.org в настройках репозитория должен быть задан Actions secret `NUGET_API_KEY`. Готовые пакеты доступны во вкладке [Releases](https://github.com/wastegate711/Wastegate.Framework.Peripheral/releases).

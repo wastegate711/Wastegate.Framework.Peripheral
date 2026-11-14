@@ -11,6 +11,18 @@ permissions:
   contents: write
 
 jobs:
+  publish-wiki:
+    if: github.event_name == 'push' && github.ref_name == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish project documentation to GitHub Wiki
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        shell: pwsh
+        run: .github/scripts/publish-wiki.ps1
+
   package-and-release:
     runs-on: windows-latest
 
