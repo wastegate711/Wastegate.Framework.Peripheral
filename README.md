@@ -175,6 +175,8 @@ await interruptExpander.Initialization(
 
 ## Сборка и публикация NuGet-пакетов
 
-Проекты используют SDK-style и `netstandard2.0`; каждый проект с `PackageId` автоматически собирается в NuGet-пакет. Push в `develop` создает предварительный GitHub Release с пакетами версии `0.0.0-develop.N`. Push Git-тега SemVer, например `1.2.3` или `v1.2.3`, публикует стабильные пакеты в NuGet.org и создает GitHub Release. Для публикации стабильных версий в настройках репозитория должен быть задан Actions secret `NUGET_API_KEY`.
+Проекты используют SDK-style и `netstandard2.0`; каждый проект с `PackageId` автоматически собирается в NuGet-пакет. Push в `develop` только собирает решение и не публикует пакеты.
 
-Пакеты также доступны во вкладке [Releases](https://github.com/wastegate711/Wastegate.Framework.Peripheral/releases).
+Pull request в `develop` собирает решение и создает предварительный GitHub Release только с измененными или новыми пакетами. Dev-версии пакетов уникальны для каждого запуска PR. Push в `release` публикует в NuGet.org и GitHub Releases только пакеты, чей проект, исходники или упаковываемые файлы изменились; новые проекты с `PackageId` также включаются автоматически. Перед выпуском измененного пакета увеличьте его `<Version>` в `.csproj`. Если такая версия уже есть в NuGet.org, публикация завершится ошибкой вместо тихого пропуска.
+
+Для публикации в NuGet.org в настройках репозитория должен быть задан Actions secret `NUGET_API_KEY`. Готовые пакеты доступны во вкладке [Releases](https://github.com/wastegate711/Wastegate.Framework.Peripheral/releases).
